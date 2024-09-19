@@ -50,7 +50,7 @@ public class Steam3Session
     // input
     readonly SteamUser.LogOnDetails logonDetails;
 
-    static readonly TimeSpan STEAM3_TIMEOUT = TimeSpan.FromSeconds(30);
+    static readonly TimeSpan STEAM3_TIMEOUT = TimeSpan.FromSeconds(10);
 
 
     public Steam3Session(SteamUser.LogOnDetails details)
@@ -79,7 +79,7 @@ public class Steam3Session
         this.callbacks.Subscribe<SteamUser.LoggedOnCallback>(LogOnCallback);
         this.callbacks.Subscribe<SteamApps.LicenseListCallback>(LicenseListCallback);
 
-        Console.Write("Connecting to Steam3...");
+        Console.WriteLine("Connecting to Steam3...");
         Connect();
     }
 

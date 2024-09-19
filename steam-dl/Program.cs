@@ -10,7 +10,7 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
-
+        
         if (args.Length == 0)
         {
             PrintVersion();
@@ -27,6 +27,8 @@ class Program
             PrintVersion();
             return 0;
         }
+        
+        ContentDownloader.Init();
 
         bool login = HasParameter(args, "-l", "--login");
         
@@ -71,10 +73,22 @@ class Program
         {
             Logger.TraceError("Invalid app id");
             ContentDownloader.ShutdownSteam3();
-            return 1;
+            return 2;
         }
-        
-        InitializeSteam(username, password);
+
+        for (int i = 0; i < 10; i++)
+        {
+            Logger.TraceInfo("Trying to connect ({0}/10)", i + 1);
+            
+            if (InitializeSteam(username, password))
+                break;
+
+            if (i == 9)
+            {
+                Logger.TraceError("Failed to connect to Steam");
+                return 1;
+            }
+        }
 
         try
         {
@@ -136,7 +150,11 @@ class Program
         }
 
         if (AccountSettingsStore.Instance.LoginTokens.ContainsKey(username))
+        {
+            ContentDownloader.Config.RememberPassword = true;
             return ContentDownloader.InitializeSteam3(username, password);
+        }
+            
         
         if (string.IsNullOrEmpty(password))
         {

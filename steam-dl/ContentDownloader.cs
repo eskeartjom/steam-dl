@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Runtime.InteropServices;
 using SteamKit2;
 using SteamKit2.CDN;
 
@@ -18,7 +19,7 @@ public static class ContentDownloader
     private static CDNClientPool cdnPool;
     private const string CONFIG_DIR = ".steam-dl";
     private static readonly string STAGING_DIR = Path.Combine(CONFIG_DIR, "staging");
-    private const string DEFAULT_DOWNLOAD_DIR = @"steamapps\common";
+    private static string DEFAULT_DOWNLOAD_DIR = @"steamapps\common";
     
     private sealed class DepotDownloadInfo(
         uint depotid, uint appId, ulong manifestId, string branch,
@@ -32,6 +33,16 @@ public static class ContentDownloader
         public byte[] DepotKey { get; } = depotKey;
     }
 
+    public static void Init()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            DEFAULT_DOWNLOAD_DIR = @"steamapps\common";
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            DEFAULT_DOWNLOAD_DIR = @"steamapps/common";
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            DEFAULT_DOWNLOAD_DIR = @"steamapps/common";
+        
+    }
 
     public static bool InitializeSteam3(string username, string password)
     {
