@@ -1,7 +1,8 @@
 steam-dl
 ===============
+steam-dl is an app to download games directly from Steam without having to install the Steam client.
 
-steam-dl utilizing the [SteamKit2](https://github.com/SteamRE/SteamKit) library and uses a big part of the [DepotDownloader](https://github.com/SteamRE/DepotDownloader)
+steam-dl utilizing the [SteamKit2](https://github.com/SteamRE/SteamKit) library and is based on the [DepotDownloader](https://github.com/SteamRE/DepotDownloader)
 
 ## How to build
 
