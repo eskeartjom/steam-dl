@@ -6,6 +6,10 @@
         <RootNamespace>steam_dl</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <Version>1.0.1</Version>
+        <Title>steam-dl</Title>
+        <Authors>Artjom Esme</Authors>
+        <AssemblyVersion>1.0.1</AssemblyVersion>
     </PropertyGroup>
 
     <ItemGroup>

@@ -16,14 +16,21 @@ cd steam-dl
 ### Build for Windows
 
 ```powershell
-.\Build.ps1
+.\BuildWin64.ps1
 ```
 
-### Build for Linux or macOS
+### Build for macOS
 
 ```shell
-chmod +x ./Build.sh
-./Build.sh
+chmod +x ./BuildMacOS64.sh
+./BuildMacOS64.sh
+```
+
+### Build for Linux
+
+```shell
+chmod +x ./BuildLinux64.sh
+./BuildLinux64.sh
 ```
 
 The executable will be in the Build directory.
@@ -32,7 +39,7 @@ The executable will be in the Build directory.
 
 ### Login to steam
 ```shell
-./steam-dl --login -u <username> [-p <password>]
+./steam-dl --login -u <username> [-p <password>] --remember
 ```
 
 
