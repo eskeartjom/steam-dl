@@ -47,7 +47,7 @@ public class CDNClientPool
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Failed to retrieve content server list: {0}", ex.Message);
+                Logger.TraceError("Failed to retrieve content server list: {0}", ex.Message);
             }
 
             return null;

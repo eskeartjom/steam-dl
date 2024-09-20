@@ -45,7 +45,7 @@ The executable will be in the Build directory.
 
 ### Downloading an app
 ```shell
-./steam-dl -a <id> -u <username> [-password <password>] [other options]
+./steam-dl -a <id> -u <username> [-p <password>] [other options]
 ```
 
 For example: `./steam-dl -a 257850 -u testuser`

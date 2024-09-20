@@ -104,7 +104,7 @@ public static class ContentDownloader
         {
             if (steam3.RequestFreeAppLicense(appId))
             {
-                Console.WriteLine("Obtained FreeOnDemand license for app {0}", appId);
+                Logger.TraceInfo("Obtained FreeOnDemand license for app {0}", appId);
 
                 // Fetch app info again in case we didn't get it fully without a license.
                 steam3.RequestAppInfo(appId, true);
@@ -182,7 +182,7 @@ public static class ContentDownloader
         }
         catch (OperationCanceledException)
         {
-            Console.WriteLine("App {0} was not completely downloaded.", appId);
+            Logger.TraceError("App {0} was not completely downloaded.", appId);
             throw;
         }
     }
@@ -194,7 +194,7 @@ public static class ContentDownloader
 
         if (!AccountHasAccess(depotId))
         {
-            Console.WriteLine("Depot {0} is not available from this account.", depotId);
+            Logger.TraceError("Depot {0} is not available from this account.", depotId);
 
             return null;
         }
@@ -204,14 +204,14 @@ public static class ContentDownloader
             manifestId = GetSteam3DepotManifest(depotId, appId, branch);
             if (manifestId == INVALID_MANIFEST_ID && !string.Equals(branch, DEFAULT_BRANCH, StringComparison.OrdinalIgnoreCase))
             {
-                Console.WriteLine("Warning: Depot {0} does not have branch named \"{1}\". Trying {2} branch.", depotId, branch, DEFAULT_BRANCH);
+                Logger.TraceWarning("Depot {0} does not have branch named \"{1}\". Trying {2} branch.", depotId, branch, DEFAULT_BRANCH);
                 branch = DEFAULT_BRANCH;
                 manifestId = GetSteam3DepotManifest(depotId, appId, branch);
             }
 
             if (manifestId == INVALID_MANIFEST_ID)
             {
-                Console.WriteLine("Depot {0} missing public subsection or manifest section.", depotId);
+                Logger.TraceError("Depot {0} missing public subsection or manifest section.", depotId);
                 return null;
             }
         }
@@ -219,7 +219,7 @@ public static class ContentDownloader
         steam3.RequestDepotKey(depotId, appId);
         if (!steam3.DepotKeys.TryGetValue(depotId, out var depotKey))
         {
-            Console.WriteLine("No valid depot key for {0}, unable to download.", depotId);
+            Logger.TraceError("No valid depot key for {0}, unable to download.", depotId);
             return null;
         }
 
@@ -228,7 +228,7 @@ public static class ContentDownloader
         
         if (!CreateDirectories(depotId, uVersion, steamInstallDir, out var installDir))
         {
-            Console.WriteLine("Error: Unable to create install directories!");
+            Logger.TraceError("Error: Unable to create install directories!");
             return null;
         }
 
@@ -266,8 +266,9 @@ public static class ContentDownloader
                 Directory.CreateDirectory(Path.Combine(installDir, STAGING_DIR));
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.TraceError("Unable to create directory. {0}", ex.Message);
             return false;
         }
 
@@ -291,7 +292,7 @@ public static class ContentDownloader
             if (otherAppId == appId)
             {
                 // This shouldn't ever happen, but ya never know with Valve. Don't infinite loop.
-                Console.WriteLine("App {0}, Depot {1} has depotfromapp of {2}!",
+                Logger.TraceWarning("App {0}, Depot {1} has depotfromapp of {2}!",
                     appId, depotId, otherAppId);
                 return INVALID_MANIFEST_ID;
             }
@@ -317,7 +318,7 @@ public static class ContentDownloader
                 var password = Config.BetaPassword;
                 while (string.IsNullOrEmpty(password))
                 {
-                    Console.Write("Please enter the password for branch {0}: ", branch);
+                    Logger.TraceInfo("Please enter the password for branch {0}: ", branch);
                     Config.BetaPassword = password = Console.ReadLine();
                 }
 
@@ -330,7 +331,7 @@ public static class ContentDownloader
 
                     if (!steam3.AppBetaPasswords.TryGetValue(branch, out var appBetaPassword))
                     {
-                        Console.WriteLine("Password was invalid for branch {0}", branch);
+                        Logger.TraceError("Password was invalid for branch {0}", branch);
                         return INVALID_MANIFEST_ID;
                     }
 
@@ -342,14 +343,14 @@ public static class ContentDownloader
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine("Failed to decrypt branch {0}: {1}", branch, e.Message);
+                        Logger.TraceError("Failed to decrypt branch {0}: {1}", branch, e.Message);
                         return INVALID_MANIFEST_ID;
                     }
 
                     return BitConverter.ToUInt64(manifest_bytes, 0);
                 }
 
-                Console.WriteLine("Unhandled depot encryption for depotId {0}", depotId);
+                Logger.TraceError("Unhandled depot encryption for depotId {0}", depotId);
                 return INVALID_MANIFEST_ID;
             }
 
@@ -538,7 +539,7 @@ public static class ContentDownloader
 
         //Ansi.Progress(Ansi.ProgressState.Hidden);
 
-        Console.WriteLine("Total downloaded: {0} bytes ({1} bytes uncompressed) from {2} depots",
+        Logger.TraceInfo("Total downloaded: {0} bytes ({1} bytes uncompressed) from {2} depots",
             downloadCounter.totalBytesCompressed, downloadCounter.totalBytesUncompressed, depots.Count);
     }
     
@@ -548,7 +549,7 @@ public static class ContentDownloader
         var depot = depotFilesData.depotDownloadInfo;
         var depotCounter = depotFilesData.depotCounter;
 
-        Console.WriteLine("Downloading depot {0}", depot.DepotId);
+        Logger.TraceInfo("Downloading depot {0}", depot.DepotId);
 
         var files = depotFilesData.filteredFiles.Where(f => !f.Flags.HasFlag(EDepotFileFlag.Directory)).ToArray();
         var networkChunkQueue = new ConcurrentQueue<(FileStreamData fileStreamData, ProtoManifest.FileData fileData, ProtoManifest.ChunkData chunk)>();
@@ -591,21 +592,21 @@ public static class ContentDownloader
                     continue;
 
                 File.Delete(fileFinalPath);
-                Console.WriteLine("Deleted {0}", fileFinalPath);
+                Logger.TraceInfo("Deleted {0}", fileFinalPath);
             }
         }
 
         DepotConfigStore.Instance.InstalledManifestIDs[depot.DepotId] = depot.ManifestId;
         DepotConfigStore.Save();
 
-        Console.WriteLine("Depot {0} - Downloaded {1} bytes ({2} bytes uncompressed)", depot.DepotId, depotCounter.depotBytesCompressed, depotCounter.depotBytesUncompressed);
+        Logger.TraceInfo("Depot {0} - Downloaded {1} bytes ({2} bytes uncompressed)", depot.DepotId, depotCounter.depotBytesCompressed, depotCounter.depotBytesUncompressed);
     }
     
     private static async Task<DepotFilesData> ProcessDepotManifestAndFiles(CancellationTokenSource cts, DepotDownloadInfo depot, GlobalDownloadCounter downloadCounter)
     {
         var depotCounter = new DepotDownloadCounter();
 
-        Console.WriteLine("Processing depot {0}", depot.DepotId);
+        Logger.TraceInfo("Processing depot {0}", depot.DepotId);
 
         ProtoManifest oldProtoManifest = null;
         ProtoManifest newProtoManifest = null;
@@ -641,7 +642,7 @@ public static class ContentDownloader
                 {
                     // We only have to show this warning if the old manifest ID was different
                     if (lastManifestId != depot.ManifestId)
-                        Console.WriteLine("Manifest {0} on disk did not match the expected checksum.", lastManifestId);
+                        Logger.TraceError("Manifest {0} on disk did not match the expected checksum.", lastManifestId);
                     oldProtoManifest = null;
                 }
             }
@@ -650,7 +651,7 @@ public static class ContentDownloader
         if (lastManifestId == depot.ManifestId && oldProtoManifest != null)
         {
             newProtoManifest = oldProtoManifest;
-            Console.WriteLine("Already have manifest {0} for depot {1}.", depot.ManifestId, depot.DepotId);
+            Logger.TraceInfo("Already have manifest {0} for depot {1}.", depot.ManifestId, depot.DepotId);
         }
         else
         {
@@ -672,18 +673,18 @@ public static class ContentDownloader
 
                 if (newProtoManifest != null && (expectedChecksum == null || !expectedChecksum.SequenceEqual(currentChecksum)))
                 {
-                    Console.WriteLine("Manifest {0} on disk did not match the expected checksum.", depot.ManifestId);
+                    Logger.TraceError("Manifest {0} on disk did not match the expected checksum.", depot.ManifestId);
                     newProtoManifest = null;
                 }
             }
 
             if (newProtoManifest != null)
             {
-                Console.WriteLine("Already have manifest {0} for depot {1}.", depot.ManifestId, depot.DepotId);
+                Logger.TraceInfo("Already have manifest {0} for depot {1}.", depot.ManifestId, depot.DepotId);
             }
             else
             {
-                Console.Write("Downloading depot manifest... ");
+                Logger.TraceInfo("Downloading depot manifest... ");
 
                 DepotManifest depotManifest = null;
                 ulong manifestRequestCode = 0;
@@ -723,7 +724,7 @@ public static class ContentDownloader
                             // If we could not get the manifest code, this is a fatal error
                             if (manifestRequestCode == 0)
                             {
-                                Console.WriteLine("No manifest request code was returned for {0} {1}", depot.DepotId, depot.ManifestId);
+                                Logger.TraceWarning("No manifest request code was returned for {0} {1}", depot.DepotId, depot.ManifestId);
                                 cts.Cancel();
                             }
                         }
@@ -746,7 +747,7 @@ public static class ContentDownloader
                     }
                     catch (TaskCanceledException)
                     {
-                        Console.WriteLine("Connection timeout downloading depot manifest {0} {1}. Retrying.", depot.DepotId, depot.ManifestId);
+                        Logger.TraceWarning("Connection timeout downloading depot manifest {0} {1}. Retrying.", depot.DepotId, depot.ManifestId);
                     }
                     catch (SteamKitWebRequestException e)
                     {
@@ -764,17 +765,17 @@ public static class ContentDownloader
 
                         if (e.StatusCode == HttpStatusCode.Unauthorized || e.StatusCode == HttpStatusCode.Forbidden)
                         {
-                            Console.WriteLine("Encountered {2} for depot manifest {0} {1}. Aborting.", depot.DepotId, depot.ManifestId, (int)e.StatusCode);
+                            Logger.TraceError("Encountered {2} for depot manifest {0} {1}. Aborting.", depot.DepotId, depot.ManifestId, (int)e.StatusCode);
                             break;
                         }
 
                         if (e.StatusCode == HttpStatusCode.NotFound)
                         {
-                            Console.WriteLine("Encountered 404 for depot manifest {0} {1}. Aborting.", depot.DepotId, depot.ManifestId);
+                            Logger.TraceError("Encountered 404 for depot manifest {0} {1}. Aborting.", depot.DepotId, depot.ManifestId);
                             break;
                         }
 
-                        Console.WriteLine("Encountered error downloading depot manifest {0} {1}: {2}", depot.DepotId, depot.ManifestId, e.StatusCode);
+                        Logger.TraceError("Encountered error downloading depot manifest {0} {1}: {2}", depot.DepotId, depot.ManifestId, e.StatusCode);
                     }
                     catch (OperationCanceledException)
                     {
@@ -783,13 +784,13 @@ public static class ContentDownloader
                     catch (Exception e)
                     {
                         cdnPool.ReturnBrokenConnection(connection);
-                        Console.WriteLine("Encountered error downloading manifest for depot {0} {1}: {2}", depot.DepotId, depot.ManifestId, e.Message);
+                        Logger.TraceError("Encountered error downloading manifest for depot {0} {1}: {2}", depot.DepotId, depot.ManifestId, e.Message);
                     }
                 } while (depotManifest == null);
 
                 if (depotManifest == null)
                 {
-                    Console.WriteLine("\nUnable to download manifest {0} for depot {1}", depot.ManifestId, depot.DepotId);
+                    Logger.TraceError("\nUnable to download manifest {0} for depot {1}", depot.ManifestId, depot.DepotId);
                     cts.Cancel();
                 }
 
@@ -801,13 +802,13 @@ public static class ContentDownloader
                 newProtoManifest.SaveToFile(newManifestFileName, out var checksum);
                 File.WriteAllBytes(newManifestFileName + ".sha", checksum);
 
-                Console.WriteLine(" Done!");
+                Logger.TraceInfo("Done!");
             }
         }
 
         newProtoManifest.Files.Sort((x, y) => string.Compare(x.FileName, y.FileName, StringComparison.Ordinal));
 
-        Console.WriteLine("Manifest {0} ({1})", depot.ManifestId, newProtoManifest.CreationTime);
+        Logger.TraceInfo("Manifest {0} ({1})", depot.ManifestId, newProtoManifest.CreationTime);
         
 
         var stagingDir = Path.Combine(depot.InstallDir, STAGING_DIR);
@@ -884,7 +885,7 @@ public static class ContentDownloader
         var fileDidExist = fi.Exists;
         if (!fileDidExist)
         {
-            Console.WriteLine("Pre-allocating {0}", fileFinalPath);
+            Logger.TraceInfo("Pre-allocating {0}", fileFinalPath);
 
             // create new file. need all chunks
             using var fs = File.Create(fileFinalPath);
@@ -912,7 +913,7 @@ public static class ContentDownloader
                     // we have a version of this file, but it doesn't fully match what we want
                     if (Config.Verify)
                     {
-                        Console.WriteLine("Validating {0}", fileFinalPath);
+                        Logger.TraceInfo("Validating {0}", fileFinalPath);
                     }
 
                     var matchingChunks = new List<ChunkMatch>();
@@ -1001,7 +1002,7 @@ public static class ContentDownloader
                     }
                 }
 
-                Console.WriteLine("Validating {0}", fileFinalPath);
+                Logger.TraceInfo("Validating {0}", fileFinalPath);
                 neededChunks = Utils.ValidateSteam3FileChecksums(fs, [.. file.Chunks.OrderBy(x => x.Offset)]);
             }
 
@@ -1010,7 +1011,7 @@ public static class ContentDownloader
                 lock (depotDownloadCounter)
                 {
                     depotDownloadCounter.sizeDownloaded += file.TotalSize;
-                    Console.WriteLine("{0,6:#00.00}% {1}", (depotDownloadCounter.sizeDownloaded / (float)depotDownloadCounter.completeDownloadSize) * 100.0f, fileFinalPath);
+                    Logger.Trace("{0,6:#00.00}% {1}", (depotDownloadCounter.sizeDownloaded / (float)depotDownloadCounter.completeDownloadSize) * 100.0f, fileFinalPath);
                 }
 
                 lock (downloadCounter)
@@ -1124,7 +1125,7 @@ public static class ContentDownloader
                 }
                 catch (TaskCanceledException)
                 {
-                    Console.WriteLine("Connection timeout downloading chunk {0}", chunkID);
+                    Logger.TraceError("Connection timeout downloading chunk {0}", chunkID);
                 }
                 catch (SteamKitWebRequestException e)
                 {
@@ -1144,11 +1145,11 @@ public static class ContentDownloader
 
                     if (e.StatusCode == HttpStatusCode.Unauthorized || e.StatusCode == HttpStatusCode.Forbidden)
                     {
-                        Console.WriteLine("Encountered {1} for chunk {0}. Aborting.", chunkID, (int)e.StatusCode);
+                        Logger.TraceError("Encountered {1} for chunk {0}. Aborting.", chunkID, (int)e.StatusCode);
                         break;
                     }
 
-                    Console.WriteLine("Encountered error downloading chunk {0}: {1}", chunkID, e.StatusCode);
+                    Logger.TraceError("Encountered error downloading chunk {0}: {1}", chunkID, e.StatusCode);
                 }
                 catch (OperationCanceledException)
                 {
@@ -1157,13 +1158,13 @@ public static class ContentDownloader
                 catch (Exception e)
                 {
                     cdnPool.ReturnBrokenConnection(connection);
-                    Console.WriteLine("Encountered unexpected error downloading chunk {0}: {1}", chunkID, e.Message);
+                    Logger.TraceError("Encountered unexpected error downloading chunk {0}: {1}", chunkID, e.Message);
                 }
             } while (written == 0);
 
             if (written == 0)
             {
-                Console.WriteLine("Failed to find any server with chunk {0} for depot {1}. Aborting.", chunkID, depot.DepotId);
+                Logger.TraceError("Failed to find any server with chunk {0} for depot {1}. Aborting.", chunkID, depot.DepotId);
                 cts.Cancel();
             }
 
@@ -1219,7 +1220,7 @@ public static class ContentDownloader
         if (remainingChunks == 0)
         {
             var fileFinalPath = Path.Combine(depot.InstallDir, file.FileName);
-            Console.WriteLine("{0,6:#00.00}% {1}", (sizeDownloaded / (float)depotDownloadCounter.completeDownloadSize) * 100.0f, fileFinalPath);
+            Logger.Trace("{0,6:#00.00}% {1}", (sizeDownloaded / (float)depotDownloadCounter.completeDownloadSize) * 100.0f, fileFinalPath);
         }
     }
     

@@ -96,7 +96,7 @@ class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Logger.TraceError("Failed to download {0}. {1}", appId, ex.Message);
             ContentDownloader.ShutdownSteam3();
             return 1;
         }
@@ -169,32 +169,32 @@ class Program
     static void PrintUsage()
     {
         // Do not use tabs to align parameters here because tab size may differ
-        Console.WriteLine();
-        Console.WriteLine("Usage: login:");
-        Console.WriteLine("       steam-dl -l -u <username> [-p <password>]");
-        Console.WriteLine();
-        Console.WriteLine("Usage: downloading a app:");
-        Console.WriteLine("       depotdownloader -a <id> -u username [-p <password>] [other options]");
-        Console.WriteLine();
-        Console.WriteLine("Parameters:");
-        Console.WriteLine("  -a/--appid <#>           - the AppID to download.");
-        Console.WriteLine("  --os <os>                - the operating system for which to download the game (windows, macos or linux, default: OS the program is currently running on)");
-        Console.WriteLine("  --arch <arch>            - the architecture for which to download the game (32 or 64, default: the host's architecture)");
-        Console.WriteLine("  --language <lang>        - the language for which to download the game (default: english)");
-        Console.WriteLine();
-        Console.WriteLine("  -u/--username <user>     - the username of the account to login to for restricted content.");
-        Console.WriteLine("  -p/--password <pass>     - the password of the account to login to for restricted content.");
-        Console.WriteLine("  -r/--remember            - if set, remember the password for subsequent logins of this user.");
-        Console.WriteLine("  -l/--login               - if set, you will just be able to test login into steam. No downloads will be made");
-        Console.WriteLine();
-        Console.WriteLine("  -o/--output <installdir> - the directory in which to place downloaded files.");
-        Console.WriteLine("  --verify                 - Include checksum verification of files already downloaded");
+        Logger.Trace("");
+        Logger.Trace("Usage: login:");
+        Logger.Trace("       steam-dl -l -u <username> [-p <password>]");
+        Logger.Trace("");
+        Logger.Trace("Usage: downloading a app:");
+        Logger.Trace("       steam-dl -a <id> -u username [-p <password>] [other options]");
+        Logger.Trace("");
+        Logger.Trace("Parameters:");
+        Logger.Trace("  -a/--appid <#>           - the AppID to download.");
+        Logger.Trace("  --os <os>                - the operating system for which to download the game (windows, macos or linux, default: OS the program is currently running on)");
+        Logger.Trace("  --arch <arch>            - the architecture for which to download the game (32 or 64, default: the host's architecture)");
+        Logger.Trace("  --language <lang>        - the language for which to download the game (default: english)");
+        Logger.Trace("");
+        Logger.Trace("  -u/--username <user>     - the username of the account to login to for restricted content.");
+        Logger.Trace("  -p/--password <pass>     - the password of the account to login to for restricted content.");
+        Logger.Trace("  -r/--remember            - if set, remember the password for subsequent logins of this user.");
+        Logger.Trace("  -l/--login               - if set, you will just be able to test login into steam. No downloads will be made");
+        Logger.Trace("");
+        Logger.Trace("  -o/--output <installdir> - the directory in which to place downloaded files.");
+        Logger.Trace("  --verify                 - Include checksum verification of files already downloaded");
     }
 
     static void PrintVersion(bool printExtra = false)
     {
         var version = typeof(Program).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
-        Console.WriteLine($"steam-dl v{version}");
+        Logger.Trace($"steam-dl v{version}");
     }
 }
 

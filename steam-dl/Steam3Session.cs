@@ -79,7 +79,7 @@ public class Steam3Session
         this.callbacks.Subscribe<SteamUser.LoggedOnCallback>(LogOnCallback);
         this.callbacks.Subscribe<SteamApps.LicenseListCallback>(LicenseListCallback);
 
-        Console.WriteLine("Connecting to Steam3...");
+        Logger.TraceInfo("Connecting to Steam3...");
         Connect();
     }
 
@@ -130,7 +130,7 @@ public class Steam3Session
             completed = true;
             if (appTokens.AppTokensDenied.Contains(appId))
             {
-                Console.WriteLine("Insufficient privileges to get access token for app {0}", appId);
+                Logger.TraceError("Insufficient privileges to get access token for app {0}", appId);
             }
 
             foreach (var token_dict in appTokens.AppTokens)
@@ -152,8 +152,7 @@ public class Steam3Session
             foreach (var app_value in appInfo.Apps)
             {
                 var app = app_value.Value;
-
-                Console.WriteLine("Got AppInfo for {0}", app.ID);
+                Logger.TraceInfo("Got AppInfo for {0}", app.ID);
                 AppInfo[app.ID] = app;
             }
 
@@ -248,7 +247,7 @@ public class Steam3Session
         Action<SteamApps.DepotKeyCallback> cbMethod = depotKey =>
         {
             completed = true;
-            Console.WriteLine("Got depot key for {0} result: {1}", depotKey.DepotID, depotKey.Result);
+            Logger.TraceInfo("Got depot key for {0} result: {1}", depotKey.DepotID, depotKey.Result);
 
             if (depotKey.Result != EResult.OK)
             {
@@ -273,7 +272,7 @@ public class Steam3Session
 
         var requestCode = await steamContent.GetManifestRequestCode(depotId, appId, manifestId, branch);
 
-        Console.WriteLine("Got manifest request code for {0} {1} result: {2}",
+        Logger.TraceInfo("Got manifest request code for {0} {1} result: {2}",
             depotId, manifestId,
             requestCode);
 
@@ -294,7 +293,7 @@ public class Steam3Session
 
         var cdnAuth = await steamApps.GetCDNAuthToken(appid, depotid, server.Host);
 
-        Console.WriteLine($"Got CDN auth token for {server.Host} result: {cdnAuth.Result} (expires {cdnAuth.Expiration})");
+        Logger.TraceInfo($"Got CDN auth token for {server.Host} result: {cdnAuth.Result} (expires {cdnAuth.Expiration})");
 
         if (cdnAuth.Result != EResult.OK)
         {
@@ -311,7 +310,7 @@ public class Steam3Session
         {
             completed = true;
 
-            Console.WriteLine("Retrieved {0} beta keys with result: {1}", appPassword.BetaPasswords.Count, appPassword.Result);
+            Logger.TraceInfo("Retrieved {0} beta keys with result: {1}", appPassword.BetaPasswords.Count, appPassword.Result);
 
             foreach (var entry in appPassword.BetaPasswords)
             {
@@ -448,14 +447,14 @@ public class Steam3Session
 
         if (diff > STEAM3_TIMEOUT && !bConnected)
         {
-            Console.WriteLine("Timeout connecting to Steam3.");
+            Logger.TraceWarning("Timeout connecting to Steam3.");
             Abort();
         }
     }
 
     private async void ConnectedCallback(SteamClient.ConnectedCallback connected)
     {
-        Console.WriteLine(" Done!");
+        Logger.TraceInfo("Done!");
         bConnecting = false;
         bConnected = true;
 
@@ -466,14 +465,14 @@ public class Steam3Session
 
         if (!authenticatedUser)
         {
-            Console.Write("Logging anonymously into Steam3...");
+            Logger.TraceInfo("Logging anonymously into Steam3...");
             steamUser.LogOnAnonymous();
         }
         else
         {
             if (logonDetails.Username != null)
             {
-                Console.WriteLine("Logging '{0}' into Steam3...", logonDetails.Username);
+                Logger.TraceInfo("Logging '{0}' into Steam3...", logonDetails.Username);
             }
 
             if (authSession is null)
@@ -498,7 +497,7 @@ public class Steam3Session
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine("Failed to authenticate with Steam: " + ex.Message);
+                        Logger.TraceError("Failed to authenticate with Steam: " + ex.Message);
                         Abort(false);
                         return;
                     }
@@ -592,25 +591,25 @@ public class Steam3Session
         // When recovering the connection, we want to reconnect even if the remote disconnects us
         if (!bIsConnectionRecovery && (disconnected.UserInitiated || bExpectingDisconnectRemote))
         {
-            Console.WriteLine("Disconnected from Steam");
+            Logger.TraceInfo("Disconnected from Steam");
 
             // Any operations outstanding need to be aborted
             bAborted = true;
         }
         else if (connectionBackoff >= 10)
         {
-            Console.WriteLine("Could not connect to Steam after 10 tries");
+            Logger.TraceError("Could not connect to Steam after 10 tries");
             Abort(false);
         }
         else if (!bAborted)
         {
             if (bConnecting)
             {
-                Console.WriteLine("Connection to Steam failed. Trying again");
+                Logger.TraceWarning("Connection to Steam failed. Trying again");
             }
             else
             {
-                Console.WriteLine("Lost connection to Steam. Reconnecting");
+                Logger.TraceWarning("Lost connection to Steam. Reconnecting");
             }
 
             Thread.Sleep(1000 * ++connectionBackoff);
@@ -639,14 +638,14 @@ public class Steam3Session
 
             if (!isAccessToken)
             {
-                Console.WriteLine("This account is protected by Steam Guard.");
+                Logger.TraceInfo("This account is protected by Steam Guard.");
             }
 
             if (is2FA)
             {
                 do
                 {
-                    Console.Write("Please enter your 2 factor auth code from your authenticator app: ");
+                    Logger.TraceInfo("Please enter your 2 factor auth code from your authenticator app: ");
                     logonDetails.TwoFactorCode = Console.ReadLine();
                 } while (string.Empty == logonDetails.TwoFactorCode);
             }
@@ -656,7 +655,7 @@ public class Steam3Session
                 AccountSettingsStore.Save();
 
                 // TODO: Handle gracefully by falling back to password prompt?
-                Console.WriteLine($"Access token was rejected ({loggedOn.Result}).");
+                Logger.TraceError($"Access token was rejected ({loggedOn.Result}).");
                 Abort(false);
                 return;
             }
@@ -664,12 +663,12 @@ public class Steam3Session
             {
                 do
                 {
-                    Console.Write("Please enter the authentication code sent to your email address: ");
+                    Logger.TraceInfo("Please enter the authentication code sent to your email address: ");
                     logonDetails.AuthCode = Console.ReadLine();
                 } while (string.Empty == logonDetails.AuthCode);
             }
 
-            Console.Write("Retrying Steam3 connection...");
+            Logger.TraceWarning("Retrying Steam3 connection...");
             Connect();
 
             return;
@@ -677,7 +676,7 @@ public class Steam3Session
 
         if (loggedOn.Result == EResult.TryAnotherCM)
         {
-            Console.Write("Retrying Steam3 connection (TryAnotherCM)...");
+            Logger.TraceWarning("Retrying Steam3 connection (TryAnotherCM)...");
 
             Reconnect();
 
@@ -686,7 +685,7 @@ public class Steam3Session
 
         if (loggedOn.Result == EResult.ServiceUnavailable)
         {
-            Console.WriteLine("Unable to login to Steam3: {0}", loggedOn.Result);
+            Logger.TraceError("Unable to login to Steam3: {0}", loggedOn.Result);
             Abort(false);
 
             return;
@@ -694,20 +693,20 @@ public class Steam3Session
 
         if (loggedOn.Result != EResult.OK)
         {
-            Console.WriteLine("Unable to login to Steam3: {0}", loggedOn.Result);
+            Logger.TraceError("Unable to login to Steam3: {0}", loggedOn.Result);
             Abort();
 
             return;
         }
 
-        Console.WriteLine(" Done!");
+        Logger.TraceInfo("Done!");
 
         this.seq++;
         IsLoggedOn = true;
 
         if (ContentDownloader.Config.CellID == 0)
         {
-            Console.WriteLine("Using Steam3 suggested CellID: " + loggedOn.CellID);
+            Logger.TraceInfo("Using Steam3 suggested CellID: " + loggedOn.CellID);
             ContentDownloader.Config.CellID = (int)loggedOn.CellID;
         }
     }
@@ -716,13 +715,13 @@ public class Steam3Session
     {
         if (licenseList.Result != EResult.OK)
         {
-            Console.WriteLine("Unable to get license list: {0} ", licenseList.Result);
+            Logger.TraceError("Unable to get license list: {0} ", licenseList.Result);
             Abort();
 
             return;
         }
 
-        Console.WriteLine("Got {0} licenses for account!", licenseList.LicenseList.Count);
+        Logger.TraceInfo("Got {0} licenses for account!", licenseList.LicenseList.Count);
         Licenses = licenseList.LicenseList;
 
         foreach (var license in licenseList.LicenseList)
@@ -742,7 +741,7 @@ public class Steam3Session
         using var qrCode = new AsciiQRCode(qrCodeData);
         var qrCodeAsAsciiArt = qrCode.GetGraphic(1, drawQuietZones: false);
 
-        Console.WriteLine("Use the Steam Mobile App to sign in with this QR code:");
-        Console.WriteLine(qrCodeAsAsciiArt);
+        Logger.TraceInfo("Use the Steam Mobile App to sign in with this QR code:");
+        Logger.Trace(qrCodeAsAsciiArt);
     }
 }

@@ -56,7 +56,7 @@ class AccountSettingsStore
             }
             catch (IOException ex)
             {
-                Console.WriteLine("Failed to load account settings: {0}", ex.Message);
+                Logger.TraceError("Failed to load account settings: {0}", ex.Message);
                 Instance = new AccountSettingsStore();
             }
         }
@@ -81,7 +81,7 @@ class AccountSettingsStore
         }
         catch (IOException ex)
         {
-            Console.WriteLine("Failed to save account settings: {0}", ex.Message);
+            Logger.TraceError("Failed to save account settings: {0}", ex.Message);
         }
     }
 }
