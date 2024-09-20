@@ -115,6 +115,8 @@ public static class ContentDownloader
                 throw new Exception(string.Format("App {0} ({1}) is not available from this account.", appId, contentName));
             }
         }
+        
+        Logger.TraceInfo("Downloading '{0}'", GetAppName(appId));
         var depots = GetSteam3AppSection(appId, EAppInfoSection.Depots);
 
         List<(uint depotId, ulong manifestId)> depotManifestIds = new List<(uint depotId, ulong manifestId)>();
@@ -885,7 +887,7 @@ public static class ContentDownloader
         var fileDidExist = fi.Exists;
         if (!fileDidExist)
         {
-            Logger.TraceInfo("Pre-allocating {0}", fileFinalPath);
+            Logger.Trace("Pre-allocating {0}", fileFinalPath);
 
             // create new file. need all chunks
             using var fs = File.Create(fileFinalPath);
