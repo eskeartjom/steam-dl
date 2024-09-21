@@ -10,6 +10,7 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        Logger.InitLogFile();
         
         if (args.Length == 0)
         {
@@ -102,6 +103,8 @@ class Program
         }
      
         ContentDownloader.ShutdownSteam3();
+
+        Logger.CloseLogFile();
         
         return 0;
     }
