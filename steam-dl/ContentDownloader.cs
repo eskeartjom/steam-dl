@@ -162,7 +162,10 @@ public static class ContentDownloader
                     }
                         
                     depotManifestIds.Add((id, INVALID_MANIFEST_ID));
-                    
+                }
+                else
+                {
+                    depotManifestIds.Add((id, INVALID_MANIFEST_ID));
                 }
             }
         }
