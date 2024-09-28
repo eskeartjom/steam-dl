@@ -2,8 +2,10 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 using SteamKit2;
 using SteamKit2.CDN;
+using SteamKit2.Internal;
 
 namespace steam_dl;
 
@@ -14,6 +16,7 @@ public static class ContentDownloader
     public const ulong INVALID_MANIFEST_ID = ulong.MaxValue;
     public const string DEFAULT_BRANCH = "public";
     
+    private static List<DepotDownloadInfo> infos = new List<DepotDownloadInfo>();
     public static DownloadConfig Config = new();
     private static Steam3Session steam3;
     private static CDNClientPool cdnPool;
@@ -153,7 +156,7 @@ public static class ContentDownloader
                             continue;
                     }
 
-                    if (depotConfig["language"] != KeyValue.Invalid &&
+                    if (!Config.AllLanguages && depotConfig["language"] != KeyValue.Invalid &&
                         !string.IsNullOrWhiteSpace(depotConfig["language"].Value))
                     {
                         var depotLang = depotConfig["language"].Value;
@@ -170,7 +173,7 @@ public static class ContentDownloader
             }
         }
 
-        var infos = new List<DepotDownloadInfo>();
+        infos = new List<DepotDownloadInfo>();
         
         foreach (var (depotId, manifestId) in depotManifestIds)
         {
@@ -184,6 +187,8 @@ public static class ContentDownloader
         try
         {
             await DownloadSteam3Async(infos).ConfigureAwait(false);
+
+            CreateAppManifest(appId);
         }
         catch (OperationCanceledException)
         {
@@ -228,6 +233,8 @@ public static class ContentDownloader
             return null;
         }
 
+        KeyValue appInfo = GetAllInfo(appId);
+        
         var uVersion = GetSteam3AppBuildNumber(appId, branch);
         string steamInstallDir = GetInstallDir(appId);
         
@@ -238,6 +245,80 @@ public static class ContentDownloader
         }
 
         return new DepotDownloadInfo(depotId, appId, manifestId, branch, installDir, depotKey);
+    }
+
+    static void CreateAppManifest(uint appId)
+    {
+        string file = Path.Combine(Config.InstallDirectory, "steamapps", string.Format("appmanifest_{0}.acf", appId));
+        
+        if(File.Exists(file))
+            File.Delete(file);
+
+        FileStream fs = File.Create(file);
+        string name = GetAppName(appId);
+        string installDir = GetInstallDir(appId);
+        uint buildid = GetSteam3AppBuildNumber(appId, Config.Branch);
+
+        KeyValue depots = GetDepotInfos(appId);
+
+        List<(string, string, string)> installedDepots = new List<(string, string, string)>();
+        
+        foreach (DepotDownloadInfo info in infos)
+        {
+            KeyValue depot = depots.Children.Where(x => x.Name == info.DepotId.ToString()).FirstOrDefault();
+            if (depot == null)
+                continue;
+
+            KeyValue manifests = depot.Children.Where(x => x.Name == "manifests").FirstOrDefault();
+            if (manifests == null)
+                continue;
+            
+            KeyValue branch = manifests.Children.Where(x => x.Name == Config.Branch).FirstOrDefault();
+            if (branch == null)
+                continue;
+            
+            KeyValue gid = branch.Children.Where(x => x.Name == "gid").FirstOrDefault();
+            if (gid == null)
+                continue;
+            
+            KeyValue size = branch.Children.Where(x => x.Name == "size").FirstOrDefault();
+            if (size == null)
+                continue;
+            
+            installedDepots.Add((info.DepotId.ToString(), gid.Value, size.Value));
+        }
+        
+        string data = "";
+
+        data += $"\"AppState\"\n";
+        data += $"{{\n";
+        data += $"\t\"appid\"\t\t\"{appId}\"\n";
+        data += $"\t\"name\"\t\t\"{name}\"\n";
+        data += $"\t\"StateFlags\"\t\t\"4\"\n";
+        data += $"\t\"installdir\"\t\t\"{installDir}\"\n";
+        data += $"\t\"buildid\"\t\t\"{buildid}\"\n";
+
+        if (installedDepots.Count > 0)
+        {
+            data += $"\t\"InstalledDepots\"\n";
+            data += $"\t{{\n";
+
+            foreach ((string, string, string) depot in installedDepots)
+            {
+                data += $"\t\t\"{depot.Item1}\"\n";
+                data += $"\t\t{{\n";
+                data += $"\t\t\t\"manifest\"\t\t\"{depot.Item2}\"\n";
+                data += $"\t\t\t\"size\"\t\t\"{depot.Item3}\"\n";
+                data += $"\t\t}}\n";
+            }
+            
+            data += $"\t}}\n";
+        }
+        data += $"}}\n";
+        
+        fs.Write(Encoding.UTF8.GetBytes(data));
+        fs.Flush();
+        fs.Close();
     }
     
     static bool CreateDirectories(uint depotId, uint depotVersion, string steamInstalldir, out string installDir)
@@ -439,6 +520,24 @@ public static class ContentDownloader
         return info["name"].AsString();
     }
     
+    static KeyValue GetDepotInfos(uint appId)
+    {
+        var info = GetSteam3AppSection(appId, EAppInfoSection.Depots);
+        if (info == null)
+            return null;
+
+        return info;
+    }
+
+    static KeyValue GetAllInfo(uint appId)
+    {
+        KeyValue info = GetSteam3AppSection(appId, EAppInfoSection.All);
+        if (info == null)
+            return null;
+
+        return info;
+    }
+    
     internal static KeyValue GetSteam3AppSection(uint appId, EAppInfoSection section)
     {
         if (steam3 == null || steam3.AppInfo == null)
@@ -458,9 +557,17 @@ public static class ContentDownloader
             EAppInfoSection.Extended => "extended",
             EAppInfoSection.Config => "config",
             EAppInfoSection.Depots => "depots",
+            EAppInfoSection.All => "",
             _ => throw new NotImplementedException(),
         };
-        var section_kv = appinfo.Children.Where(c => c.Name == section_key).FirstOrDefault();
+
+        KeyValue section_kv = null;
+        
+        if (string.IsNullOrEmpty(section_key))
+            return appinfo;
+        else
+            section_kv = appinfo.Children.Where(c => c.Name == section_key).FirstOrDefault();
+        
         return section_kv;
     }
     

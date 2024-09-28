@@ -45,7 +45,15 @@ class Program
             
         ContentDownloader.Config.Platform = GetParameter(args, "","--os", Utils.GetSteamOS());
         ContentDownloader.Config.Architecture = GetParameter(args, "","--arch", Utils.GetSteamArch());
+
+        if (HasParameter(args, "", "--language") && HasParameter(args, "", "--all-languages"))
+        {
+            Logger.TraceError("A language and all languages can't be selected at the same time");
+            return 3;
+        }
+
         ContentDownloader.Config.Language = GetParameter(args, "","--language", "english");
+        ContentDownloader.Config.AllLanguages = HasParameter(args, "","--all-languages");
         ContentDownloader.Config.Branch = "public";
 
         Random rand = new Random();
@@ -101,7 +109,7 @@ class Program
             ContentDownloader.ShutdownSteam3();
             return 1;
         }
-     
+        
         ContentDownloader.ShutdownSteam3();
 
         Logger.CloseLogFile();
@@ -184,6 +192,7 @@ class Program
         Logger.Trace("  --os <os>                - the operating system for which to download the game (windows, macos or linux, default: OS the program is currently running on)");
         Logger.Trace("  --arch <arch>            - the architecture for which to download the game (32 or 64, default: the host's architecture)");
         Logger.Trace("  --language <lang>        - the language for which to download the game (default: english)");
+        Logger.Trace("  --all-languages          - downloads all languages of the game");
         Logger.Trace("");
         Logger.Trace("  -u/--username <user>     - the username of the account to login to for restricted content.");
         Logger.Trace("  -p/--password <pass>     - the password of the account to login to for restricted content.");

@@ -12,6 +12,7 @@ public class DownloadConfig
     public string Architecture { get; set; }
     public string Branch { get; set; }
     public string Language { get; set; }
+    public bool AllLanguages { get; set; }
 
     // A Steam LoginID to allow multiple concurrent connections
     public uint? LoginID { get; set; }
