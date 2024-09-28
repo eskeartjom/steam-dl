@@ -257,6 +257,11 @@ public static class ContentDownloader
         FileStream fs = File.Create(file);
         string name = GetAppName(appId);
         string installDir = GetInstallDir(appId);
+        
+        string gameDir = Path.Combine(Config.InstallDirectory, DEFAULT_DOWNLOAD_DIR, installDir);
+        long gameSize = 0;
+        CalcGameSize(gameDir, ref gameSize);
+        
         uint buildid = GetSteam3AppBuildNumber(appId, Config.Branch);
 
         KeyValue depots = GetDepotInfos(appId);
@@ -288,15 +293,19 @@ public static class ContentDownloader
             installedDepots.Add((info.DepotId.ToString(), gid.Value, size.Value));
         }
         
+        
+        
         string data = "";
 
         data += $"\"AppState\"\n";
         data += $"{{\n";
         data += $"\t\"appid\"\t\t\"{appId}\"\n";
+        data += $"\t\"Universe\"\t\t\"1\"\n";
         data += $"\t\"name\"\t\t\"{name}\"\n";
         data += $"\t\"StateFlags\"\t\t\"4\"\n";
         data += $"\t\"installdir\"\t\t\"{installDir}\"\n";
         data += $"\t\"buildid\"\t\t\"{buildid}\"\n";
+        data += $"\t\"SizeOnDisk\"\t\t\"{gameSize}\"\n";
 
         if (installedDepots.Count > 0)
         {
@@ -319,6 +328,23 @@ public static class ContentDownloader
         fs.Write(Encoding.UTF8.GetBytes(data));
         fs.Flush();
         fs.Close();
+    }
+
+    static void CalcGameSize(string gamedir, ref long size)
+    {
+        string[] dirs = Directory.GetDirectories(gamedir);
+
+        foreach (var dir in dirs)
+            CalcGameSize(dir, ref size);
+        
+        string[] files = Directory.GetFiles(gamedir);
+
+        foreach (var file in files)
+        {
+            FileInfo info = new FileInfo(file);
+            size += info.Length;
+        }
+
     }
     
     static bool CreateDirectories(uint depotId, uint depotVersion, string steamInstalldir, out string installDir)
