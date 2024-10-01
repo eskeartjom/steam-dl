@@ -10,6 +10,9 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        //args = new[] { "-a", "1229240", "-u", "wiondaivard" };
+        args = new[] { "-u", "wiondaivard", "-a", "38410", "-o", "X:\\SteamLibrary", "--os", "windows", "--arch", "64" };
+        
         Logger.InitLogFile();
         
         if (args.Length == 0)
@@ -49,6 +52,7 @@ class Program
         if (HasParameter(args, "", "--language") && HasParameter(args, "", "--all-languages"))
         {
             Logger.TraceError("A language and all languages can't be selected at the same time");
+            Logger.CloseLogFile();
             return 3;
         }
 
@@ -67,12 +71,14 @@ class Program
             {
                 Logger.TraceInfo("Logged in successfully");
                 ContentDownloader.ShutdownSteam3();
+                Logger.CloseLogFile();
                 return 0;
             }
             else
             {
                 Logger.TraceError("Failed to login");
                 ContentDownloader.ShutdownSteam3();
+                Logger.CloseLogFile();
                 return 1;
             }
                 
@@ -82,6 +88,7 @@ class Program
         {
             Logger.TraceError("Invalid app id");
             ContentDownloader.ShutdownSteam3();
+            Logger.CloseLogFile();
             return 2;
         }
 
@@ -95,6 +102,7 @@ class Program
             if (i == 9)
             {
                 Logger.TraceError("Failed to connect to Steam");
+                Logger.CloseLogFile();
                 return 1;
             }
         }
@@ -105,8 +113,9 @@ class Program
         }
         catch (Exception ex)
         {
-            Logger.TraceError("Failed to download {0}. {1}", appId, ex.Message);
+            Logger.TraceError("Failed to download {0}. {1} \n{2}", appId, ex.Message, ex.StackTrace);
             ContentDownloader.ShutdownSteam3();
+            Logger.CloseLogFile();
             return 1;
         }
         

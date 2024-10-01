@@ -1025,6 +1025,11 @@ public static class ContentDownloader
         {
             Logger.Trace("Pre-allocating {0}", fileFinalPath);
 
+            // fallout 2 fix: For some reason contains depot 38414 a "master.dat" folder. This breaks the creation of master.dat file.
+            // this removes the a folder with the name of the file with extension. Hopefully no other game use this kind of structure
+            if(Directory.Exists(fileFinalPath))
+                Directory.Delete(fileFinalPath, true);
+            
             // create new file. need all chunks
             using var fs = File.Create(fileFinalPath);
             try
