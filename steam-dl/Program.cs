@@ -10,9 +10,6 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
-        //args = new[] { "-a", "1229240", "-u", "wiondaivard" };
-        args = new[] { "-u", "wiondaivard", "-a", "38410", "-o", "X:\\SteamLibrary", "--os", "windows", "--arch", "64" };
-        
         Logger.InitLogFile();
         
         if (args.Length == 0)
