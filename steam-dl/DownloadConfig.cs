@@ -13,6 +13,7 @@ public class DownloadConfig
     public string Branch { get; set; }
     public string Language { get; set; }
     public bool AllLanguages { get; set; }
+    public int[] IngoreDepots { get; set; }
 
     // A Steam LoginID to allow multiple concurrent connections
     public uint? LoginID { get; set; }

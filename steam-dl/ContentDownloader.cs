@@ -137,6 +137,13 @@ public static class ContentDownloader
                 if (!uint.TryParse(depotSection.Name, out id))
                     continue;
                 
+                if (Config.IngoreDepots != null)
+                {
+                    if (Config.IngoreDepots.Contains(int.Parse(depotSection.Name)))
+                        continue;
+                }
+                
+                
                 var depotConfig = depotSection["config"];
                 if (depotConfig != KeyValue.Invalid)
                 {

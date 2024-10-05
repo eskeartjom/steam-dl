@@ -56,6 +56,19 @@ class Program
         ContentDownloader.Config.Language = GetParameter(args, "","--language", "english");
         ContentDownloader.Config.AllLanguages = HasParameter(args, "","--all-languages");
         ContentDownloader.Config.Branch = "public";
+        
+        string ignoreParam = GetParameter(args, "-i","--ignore", "");
+
+        if (string.IsNullOrEmpty(ignoreParam))
+            ContentDownloader.Config.IngoreDepots = null;
+        else
+        {
+            string[] splits =  ignoreParam.Split(',');
+            ContentDownloader.Config.IngoreDepots = new int[splits.Length];
+
+            for (int i = 0; i < splits.Length; i++)
+                ContentDownloader.Config.IngoreDepots[i] = int.Parse(splits[i]);
+        }
 
         Random rand = new Random();
         byte[] b = new byte[4];
@@ -207,6 +220,7 @@ class Program
         Logger.Trace("");
         Logger.Trace("  -o/--output <installdir> - the directory in which to place downloaded files.");
         Logger.Trace("  --verify                 - Include checksum verification of files already downloaded");
+        Logger.Trace("  -i/--ignore <depots>     - Excludes depots from download (123,456,789)");
     }
 
     static void PrintVersion(bool printExtra = false)
