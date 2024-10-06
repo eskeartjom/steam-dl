@@ -41,20 +41,20 @@ class Program
 
 
         ContentDownloader.Config.InstallDirectory = GetParameter(args, "-o", "--output", "");
-        ContentDownloader.Config.Verify = HasParameter(args, "", "--verify");
+        ContentDownloader.Config.Verify = HasParameter(args,  "--verify");
             
-        ContentDownloader.Config.Platform = GetParameter(args, "","--os", Utils.GetSteamOS());
-        ContentDownloader.Config.Architecture = GetParameter(args, "","--arch", Utils.GetSteamArch());
+        ContentDownloader.Config.Platform = GetParameter(args, "--os", Utils.GetSteamOS());
+        ContentDownloader.Config.Architecture = GetParameter(args, "--arch", Utils.GetSteamArch());
 
-        if (HasParameter(args, "", "--language") && HasParameter(args, "", "--all-languages"))
+        if (HasParameter(args,  "--language") && HasParameter(args,  "--all-languages"))
         {
             Logger.TraceError("A language and all languages can't be selected at the same time");
             Logger.CloseLogFile();
             return 3;
         }
 
-        ContentDownloader.Config.Language = GetParameter(args, "","--language", "english");
-        ContentDownloader.Config.AllLanguages = HasParameter(args, "","--all-languages");
+        ContentDownloader.Config.Language = GetParameter(args, "--language", "english");
+        ContentDownloader.Config.AllLanguages = HasParameter(args, "--all-languages");
         ContentDownloader.Config.Branch = "public";
         
         string ignoreParam = GetParameter(args, "-i","--ignore", "");
@@ -144,6 +144,14 @@ class Program
         return false;
     }
     
+    static bool HasParameter(string[] args, string mlParam)
+    {
+        if (args.Contains(mlParam))
+            return true;
+
+        return false;
+    }
+    
     static T GetParameter<T>(string[] args, string slParam, string mlParam, T defaultValue)
     {
         int slIndex = Array.IndexOf(args, slParam);
@@ -157,6 +165,30 @@ class Program
         if (slIndex >= 0)
             index = slIndex;
         else if (mlIndex >= 0)
+            index = mlIndex;
+        
+        if(index == -1 || index == (args.Length - 1))
+            return defaultValue;
+
+        string strParam = args[index + 1];
+
+        TypeConverter converter = TypeDescriptor.GetConverter(typeof(T));
+        if (converter != null)
+            return (T)converter.ConvertFromString(strParam);
+            
+        return defaultValue;
+    }
+    
+    static T GetParameter<T>(string[] args, string mlParam, T defaultValue)
+    {
+        int mlIndex = Array.IndexOf(args, mlParam);
+        
+        if (mlIndex == -1)
+            return defaultValue;
+
+        int index = -1;
+        
+        if (mlIndex >= 0)
             index = mlIndex;
         
         if(index == -1 || index == (args.Length - 1))
